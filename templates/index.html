@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Recipe Generator</title>
+    <!-- Bootstrap CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .ingredient-btn {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="text-center">AI Recipe Generator</h2>
+        <p class="text-center">Select ingredients or enter your own!</p>
+
+        <!-- Ingredient Selection Buttons -->
+        <div class="card shadow-sm p-4">
+            <h5>Select Ingredients:</h5>
+            <div id="ingredientOptions" class="mb-3">
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Chicken')">Chicken</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Beef')">Beef</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Tomato')">Tomato</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Garlic')">Garlic</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Onion')">Onion</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Carrot')">Carrot</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Cheese')">Cheese</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Rice')">Rice</button>
+                <button class="btn btn-outline-primary ingredient-btn" onclick="addIngredient('Pasta')">Pasta</button>
+                <button class="btn btn-outline-danger ingredient-btn" onclick="clearIngredients()">Clear</button>
+            </div>
+
+            <!-- Text Input for Additional Ingredients -->
+            <form id="recipeForm">
+                <div class="mb-3">
+                    <label for="ingredients" class="form-label">Or type your own ingredients:</label>
+                    <input type="text" id="ingredients" class="form-control" placeholder="Enter ingredients (comma separated)">
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Generate Recipe</button>
+            </form>
+        </div>
+
+        <!-- Recipe Output -->
+        <div class="mt-4">
+            <h4>Recipe:</h4>
+            <p id="recipeResult" class="alert alert-info"></p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        let selectedIngredients = [];
+
+        function addIngredient(ingredient) {
+            if (!selectedIngredients.includes(ingredient)) {
+                selectedIngredients.push(ingredient);
+            }
+            updateIngredientInput();
+        }
+
+        function clearIngredients() {
+            selectedIngredients = [];
+            updateIngredientInput();
+        }
+
+        function updateIngredientInput() {
+            document.getElementById("ingredients").value = selectedIngredients.join(", ");
+        }
+
+        document.getElementById("recipeForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            document.getElementById("recipeResult").textContent = "Generating recipe...";
+
+            const ingredientsInput = document.getElementById("ingredients").value;
+            const ingredientsList = ingredientsInput.split(",").map(item => item.trim()).filter(item => item !== "");
+
+            const response = await fetch("/generate_recipe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ingredients: ingredientsList })
+            });
+
+            const data = await response.json();
+            document.getElementById("recipeResult").textContent = data.recipe || "Error generating recipe.";
+        });
+    </script>
+</body>
+</html>

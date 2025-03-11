@@ -1,0 +1,4 @@
+Flask
+gunicorn
+python-dotenv  # If using .env
+pillow         # If using images

@@ -2,36 +2,57 @@ from flask import Flask, request, jsonify, render_template
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
+from PIL import Image
+import base64
+import io
 
+# Load API key from .env file
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = Flask(__name__)
 
+# Ensure an 'uploads' directory exists
+UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
 @app.route('/')
 def home():
     return render_template("index.html")
 
-@app.route('/generate_recipe', methods=['POST'])
-def generate_recipe():
-    """Generate a recipe based on provided ingredients using Google Gemini."""
-    data = request.get_json()
-    ingredients = data.get("ingredients", [])
+@app.route('/analyze_meme', methods=['POST'])
+def analyze_meme():
+    """Analyze a meme and explain its humor."""
+    if "meme" not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
 
-    if not ingredients:
-        return jsonify({"error": "No ingredients provided"}), 400
-
-    prompt = f"Suggest a simple, delicious recipe using these ingredients: {', '.join(ingredients)}. Keep it clear and short."
+    file = request.files["meme"]
+    
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")  # "gemini-1.5-pro" is another option
-        response = model.generate_content(prompt)
+        # Save image
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+        file.save(filepath)
 
-        recipe = response.text.strip()
-        return jsonify({"recipe": recipe})
+        # Convert image to base64
+        with open(filepath, "rb") as image_file:
+            image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+
+        # Send image to Gemini API
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(
+            ["Explain why this meme is funny. Describe any cultural, linguistic, or visual humor it uses.", 
+            {"mime_type": "image/jpeg", "data": image_base64}]
+        )
+
+        explanation = response.text.strip()
+        return jsonify({"explanation": explanation, "image_url": filepath})
 
     except Exception as e:
-        print("Error:", e)  # Debugging
+        print("Error:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
